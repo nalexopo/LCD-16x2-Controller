@@ -61,20 +61,20 @@ end
 
 localparam STATE_SIZE = 15; 
 localparam RESET    = 1,
-			  IDLE     = 2,
+           IDLE     = 2,
            INSTR    = 3, 
            SETUP    = 4,
            CURSOR   = 5,
-			  CLEAR    = 6,
-			  CRSRINC  = 7,
-			  CRSRSTRT = 8,
-			  WAIT_E   = 9,
-			  WAIT_OP  = 10,
-			  WRITE    = 11,
-		WAIT_WRITE1   = 12,
+	   CLEAR    = 6,
+	   CRSRINC  = 7,
+	   CRSRSTRT = 8,
+	   WAIT_E   = 9,
+	   WAIT_OP  = 10,
+	   WRITE    = 11,
+	   WAIT_WRITE1   = 12,
 	   WAIT_WRITE2   = 13,
-			IDLE_FINAL = 14,
-			  DECIDE	  = 15;	
+	   IDLE_FINAL = 14,
+	   DECIDE	  = 15;	
 			 		  
 reg [2:0] instruction_register, text_reg;
 
@@ -86,40 +86,38 @@ assign LCD_RW=1'b0;  //WE NEVER READ SO LCD_R/W IS STUCK TO 0 --- > WRITE
   
 always @ (posedge clk) begin
 	if(rst) begin
-	   text_reg <= 3'b000;
-	   kappa	   <=		1'b0;
-	   RDY		<=     1'b0;	
-		LCD_RS	<=		1'b1;										//DOUBLE RESET FOR TESTING PURPOSES
-		LCD_E		<=		1'b0;										 
-		LCD_DB 	<= 	8'b11111111;
-		flag_rst <=     1'b1;
-	   instruction_register<=3'b0;
-		State <= RESET;
+	   		text_reg <= 3'b000;
+	   		kappa	 <= 1'b0;
+	   		RDY	 <= 1'b0;	
+	   		LCD_RS	 <= 1'b1;										//DOUBLE RESET FOR TESTING PURPOSES
+			LCD_E	 <= 1'b0;										 
+			LCD_DB 	 <= 8'b11111111;
+			flag_rst <= 1'b1;
+	   		instruction_register<= 3'b0;
+			State <= RESET;
 		end
 	else begin
-		case (State)
-      RESET:begin
-		         text_reg <= 3'b000;
-		         kappa	   <=		1'b0;
-		         RDY		<=     1'b0;	
-					LCD_RS	<=		1'b0;											
-					LCD_E		<=		1'b0;										
-					LCD_DB 	<= 	   8'b00000000;
-					flag_rst <=     1'b1;
+			case (State)
+      			RESET:begin
+		         		text_reg <= 3'b000;
+		         		kappa	 <= 1'b0;
+		         		RDY	 <= 1'b0;	
+					LCD_RS	 <= 1'b0;											
+					LCD_E	 <= 1'b0;										
+					LCD_DB 	 <= 8'b00000000;
+					flag_rst <= 1'b1;
 					instruction_register<=3'b0;
 					State    <=     IDLE;	
 							
 				end
-		 IDLE:begin
-		         if(RDY)State <=WRITE;           //IDLE STATE THAT DIRECTS TO INITILIAZATION OR WRITE PURPOSE
-               else State <=INSTR;
-					
-						
-	         end
-	   INSTR:begin     //INSTRUCTION SEQUENCE HANDLING STATE
+		 	IDLE:begin
+		         		if(RDY)State <=WRITE;           //IDLE STATE THAT DIRECTS TO INITILIAZATION OR WRITE PURPOSE
+               				else State <=INSTR;
+			     end
+     			INSTR:begin     //INSTRUCTION SEQUENCE HANDLING STATE
 					LCD_RS <=		1'b0;
 					case (instruction_register)
-					      0:begin
+					      		0:begin
 							  instruction_register<=instruction_register+1'b1;
 							  State <=SETUP;
 							  end
@@ -143,104 +141,102 @@ always @ (posedge clk) begin
 							  instruction_register<=3'b0;
 							  RDY<=1'b1;
 							  State  <= IDLE;
-							  
 							  end
 					endcase		
-				end		
-      SETUP:begin
+			       end		
+      			SETUP:begin
 					LCD_DB <= 8'b0011_1100;
 					State  <= WAIT_E;
-				end
-     CURSOR:begin
+			      end
+      			CURSOR:begin
 					LCD_DB <= 8'b0000_1111;
 					State  <= WAIT_E;
-				 end
-		CLEAR:begin
+			       end
+      			CLEAR:begin
 					LCD_DB <= 8'b0000_0001;            //INSTRUCTION STATES USED FOR INITILLIZATION OF LCD
 					State <= WAIT_E;
-				end		 
-	 CRSRINC:begin
+			      end		 
+      			CRSRINC:begin
 					LCD_DB <= 8'b0000_0110;
 					State <= WAIT_E;
 				end
-	CRSRSTRT:begin
+      			CRSRSTRT:begin
 					LCD_DB <= 8'b1000_0000;
 					State <= WAIT_E;
-				end 
-     WAIT_E:begin
-					LCD_E<=1'b1;
-	            if(!flag_500ns)begin
-											flag_rst<=1'b0;
-											State <= WAIT_E;  //FIRST DELAY 500ns for keeping ENABLE HIGH for 500ns
-										end 
+				 end 
+      			WAIT_E:begin
+	     				LCD_E<=1'b1;
+	                		if(!flag_500ns)begin
+					 			flag_rst<=1'b0;
+					 			State <= WAIT_E;  //FIRST DELAY 500ns for keeping ENABLE HIGH for 500ns
+				                       end 
 					else begin					  
-						  flag_rst<=1'b1;
-						  State<=WAIT_OP;
-						  end	
-				end		  
-     WAIT_OP:begin
-					LCD_E<=1'b0;
-	            if(!flag_2000us)begin
-											flag_rst<=1'b0;
-											State <= WAIT_OP; 
-										end 
+			     				flag_rst<=1'b1;
+			     				State<=WAIT_OP;
+			    		     end	
+	     			end		  
+     			WAIT_OP:begin
+	  				LCD_E<=1'b0;
+	           			if(!flag_2000us)begin
+								flag_rst<=1'b0;
+								State <= WAIT_OP; 
+							end 
 					else begin
-									flag_rst<=1'b1;
-									State <=INSTR;
-								 end	
-					end
+								flag_rst<=1'b1;
+								State <=INSTR;
+					     end	
+				 end
 
 //////////WRITE PORTION OF FSM//////////////////
-   WRITE:begin
+   			WRITE:begin
 					LCD_RS <=		1'b1;
 					if( RxD_data_ready) begin
-                                    if(RxD_data == 8'b00001101) 					
-												      State<=RESET;
-												else begin
-												      LCD_DB<=RxD_data;        //LCD CHECKS HANDSHAKE SIGNAL RxD_data_ready TO 
-														State<=WAIT_WRITE1; 	    // TO REPORT READY INPUT FROM KEYBOARD 
-													  end                       //IF THE KEYBOARD INPUT IS ENTER WE GO BACK TO RESET  
+                                        				if(RxD_data == 8'b00001101)State<=RESET;
+									else begin
+											LCD_DB<=RxD_data;        //LCD CHECKS HANDSHAKE SIGNAL RxD_data_ready TO 
+											State<=WAIT_WRITE1; 	    // TO REPORT READY INPUT FROM KEYBOARD 
+									     end                       //IF THE KEYBOARD INPUT IS ENTER WE GO BACK TO RESET  
                                        									 //ELSE WE GO WRITE ON LCD			
-											  end		
-					else begin
-						LCD_DB<=LCD_DB;
-						State<=WRITE;
-						end
-
-			end	
+							     end		
+					 else begin
+							LCD_DB<=LCD_DB;
+							State<=WRITE;
+					      end
+				end	
 	//WRITE DELAYS SAME AS ABOVE BUT DIFFERENT FLAG IS USED FOR SECOND DELAY			
-	WAIT_WRITE1:begin
-					LCD_E<=1'b1;
-	            if(!flag_500ns)begin
-											flag_rst<=1'b0;
-											State <= WAIT_WRITE1; 
-										end 
-					else begin					  
-						  flag_rst<=1'b1;
-						  State<=WAIT_WRITE2;
-						  end	
-				end		  
-     WAIT_WRITE2:begin
-                 LCD_RS<=1'b0;	  
-					  LCD_E<=1'b0;
-	              if(!flag_500ns)begin
-											flag_rst<=1'b0;
-											State <= WAIT_WRITE2; 
-										end 
-					else begin
-									flag_rst<=1'b1;
-									State <=WRITE;
-								 end	
-						  end	
-	IDLE_FINAL:begin 
-	            kappa<=1'b1;
-					State<=IDLE_FINAL; //STATE FOR TESTING PURPOSES NOT USED IN PROPER OPERATION
+			WAIT_WRITE1:begin
+						LCD_E<=1'b1;
+	            				if(!flag_500ns)begin
+									flag_rst<=1'b0;
+									State <= WAIT_WRITE1; 
+							       end 
+						else begin					  
+						  		flag_rst<=1'b1;
+						  		State<=WAIT_WRITE2;
+						     end	
+				     end		  
+     			WAIT_WRITE2:begin
+                 				LCD_RS<=1'b0;	  
+					  	LCD_E<=1'b0;
+	              				if(!flag_500ns)begin
+									flag_rst<=1'b0;
+									State <= WAIT_WRITE2; 
+								end 
+						else begin
+								flag_rst<=1'b1;
+								State <=WRITE;
+						     end	
+				      end	
+			IDLE_FINAL:begin 
+	            				kappa<=1'b1;
+						State<=IDLE_FINAL; //STATE FOR TESTING PURPOSES NOT USED IN PROPER OPERATION
 				  end		
   	
 			  
            	  
-      default: begin State  <= IDLE; end
-    endcase
-  end
- end
+      			default: begin State  <= IDLE; end
+			endcase
+	end
+ 
+end
 endmodule			
